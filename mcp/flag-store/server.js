@@ -8,6 +8,10 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { FLAGS } from '../../lib/flags.js';
+import { effectivePercent } from '../../lib/evaluate.js';
+
+// Include the current (possibly ramping) percent alongside the stored one.
+const withEffective = (f) => ({ ...f, effectivePercent: effectivePercent(f) });
 
 const server = new Server(
   { name: 'flag-store', version: '0.1.0' },
@@ -72,7 +76,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 
   if (name === 'list_flags') {
     const { env } = ListFlagsInput.parse(args ?? {});
-    const flags = env ? FLAGS.filter((f) => f.env === env) : FLAGS;
+    const flags = (env ? FLAGS.filter((f) => f.env === env) : FLAGS).map(withEffective);
     return { content: [{ type: 'text', text: JSON.stringify(flags, null, 2) }] };
   }
 
@@ -82,7 +86,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
     if (!flag) {
       return { content: [{ type: 'text', text: `No flag '${key}' in ${env}.` }], isError: true };
     }
-    return { content: [{ type: 'text', text: JSON.stringify(flag, null, 2) }] };
+    return { content: [{ type: 'text', text: JSON.stringify(withEffective(flag), null, 2) }] };
   }
 
   if (name === 'check_rollout_safety') {
@@ -97,9 +101,10 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       reasons.push(`flag '${key}' does not exist in staging`);
     } else {
       if (!stagingFlag.enabled) reasons.push('flag is disabled in staging');
-      if (stagingFlag.rolloutPercent < targetPercent) {
+      const stagingPercent = effectivePercent(stagingFlag);
+      if (stagingPercent < targetPercent) {
         reasons.push(
-          `staging is only at ${stagingFlag.rolloutPercent}% — prove it there first before going to ${targetPercent}% in prod`
+          `staging is only at ${stagingPercent}% — prove it there first before going to ${targetPercent}% in prod`
         );
       }
     }

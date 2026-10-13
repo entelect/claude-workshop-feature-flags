@@ -1,10 +1,18 @@
 import { FLAGS } from '../../../lib/flags.js';
+import { effectivePercent } from '../../../lib/evaluate.js';
+
+const ENVS = ['dev', 'staging', 'prod'];
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const env = searchParams.get('env');
 
-  const flags = env ? FLAGS.filter((f) => f.env === env) : FLAGS;
+  if (env && !ENVS.includes(env)) {
+    return Response.json({ error: `env must be one of ${ENVS.join(', ')}` }, { status: 400 });
+  }
+
+  const flags = (env ? FLAGS.filter((f) => f.env === env) : FLAGS)
+    .map((f) => ({ ...f, effectivePercent: effectivePercent(f) }));
 
   return Response.json({ flags, count: flags.length });
 }

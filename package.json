@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node --check mcp/flag-store/server.js && node --check lib/flags.js && node --check lib/evaluate.js && node --check app/api/flags/route.js && node --check 'app/api/flags/[key]/route.js' && node --check app/api/rollout/route.js && echo 'syntax ok'",
+    "check": "node --check mcp/flag-store/server.js && node --check lib/flags.js && node --check lib/evaluate.js && node --check app/api/flags/route.js && node --check 'app/api/flags/[key]/route.js' && node --check app/api/rollout/route.js && node --check app/api/killswitch/route.js && echo 'syntax ok'",
     "dev": "next dev",
     "mcp": "node mcp/flag-store/server.js"
   },
