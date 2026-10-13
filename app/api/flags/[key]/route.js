@@ -2,7 +2,8 @@ import { FLAGS } from '../../../../lib/flags.js';
 import { evaluate } from '../../../../lib/evaluate.js';
 
 export async function GET(request, { params }) {
-  const { key } = params;
+  // Next 15+ passes params as a Promise; reading it synchronously gives undefined.
+  const { key } = await params;
   const { searchParams } = new URL(request.url);
   const env = searchParams.get('env') || 'prod';
   const userId = searchParams.get('userId');

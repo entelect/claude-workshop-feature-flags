@@ -1,0 +1,6 @@
+{
+  "name": "flag-toolkit",
+  "description": "Guarded feature-flag workflows: test-gated rollouts and a prod-vs-staging audit.",
+  "version": "0.1.0",
+  "author": { "name": "ANongcaula" }
+}

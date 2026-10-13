@@ -20,14 +20,16 @@ when you hit Exercise 3 (the MCP SDK is a real dep).
 ## Structure
 
 ```
-lib/flags.js              ← 12 flags. Static array. Start by reading this.
-lib/evaluate.js           ← Rollout bucketing. THE BUG LIVES HERE.
-test/evaluate.test.js     ← 4 tests. One fails. Your target for Ex 1.
-app/api/flags/route.js    ← GET all flags, ?env= filter
-app/api/flags/[key]/      ← GET one flag, ?userId= to evaluate
-app/api/rollout/route.js  ← POST to bump a flag's %
-mcp/flag-store/server.js  ← Stdio MCP server. Ex 3 wires this up.
-CLAUDE.md                 ← Sparse TODOs. Ex 2 fills these in.
+lib/flags.js                 ← 12 flags. Static array. Start by reading this.
+lib/evaluate.js              ← Rollout bucketing. THE BUG LIVES HERE.
+test/evaluate.test.js        ← 4 tests. One fails. Your target for Ex 1.
+test/killswitch.test.js      ← Kill switch tests.
+app/api/flags/route.js       ← GET all flags, ?env= filter
+app/api/flags/[key]/         ← GET one flag, ?userId= to evaluate
+app/api/rollout/route.js     ← POST to bump a flag's %
+app/api/killswitch/route.js  ← POST to disable every prod flag
+mcp/flag-store/server.js     ← Stdio MCP server. Ex 3 wires this up.
+CLAUDE.md                    ← Sparse TODOs. Ex 2 fills these in.
 ```
 
 ---
@@ -128,6 +130,29 @@ flag-toolkit/
 
 **Stretch:** add a second skill to the plugin — `/flag-audit` that lists
 every flag where prod % > staging %. Ship both skills as one plugin.
+
+---
+
+## Kill switch
+
+For incidents: one call turns off every prod feature at once.
+
+```bash
+curl -X POST http://localhost:3000/api/killswitch
+```
+
+```json
+{
+  "disabled": ["dark-mode", "legacy-export", "new-checkout", "beta-search"],
+  "alreadyDisabled": [],
+  "count": 4
+}
+```
+
+- Idempotent: calling it again returns `"disabled": []` with the same `count`.
+- Sets `enabled = false` only; `rolloutPercent` is kept, so re-enabling restores the old rollout.
+- Dev and staging flags are untouched.
+- In-memory only, like `POST /api/rollout`: a restart restores `lib/flags.js`. No auth.
 
 ---
 
