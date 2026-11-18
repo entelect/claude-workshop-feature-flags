@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "fs-pagerduty":  { "command": "node", "args": ["mcp/pagerduty/server.js"] },
-    "fs-servicenow": { "command": "node", "args": ["mcp/servicenow/server.js"] },
-    "fs-confluence": { "command": "node", "args": ["mcp/confluence/server.js"] },
-    "fs-jira":       { "command": "node", "args": ["mcp/jira/server.js"] },
-    "fs-slack":      { "command": "node", "args": ["mcp/slack/server.js"] }
-  }
-}

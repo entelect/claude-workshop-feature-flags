@@ -1,138 +1,159 @@
-# flag-service — Claude Code Workshop
+# flag-service — Claude Code Foundations
 
-A tiny feature-flags service built on Next.js App Router. Twelve flags across
-dev/staging/prod, percentage rollouts with deterministic user bucketing, and
-one test that fails on a cold clone. You'll fix the bug, teach Claude the
-repo, wire an MCP server, and package the workflow as a plugin.
+A tiny feature-flags service built on the Next.js App Router. Twelve flags
+across dev/staging/prod, percentage rollouts with deterministic user
+bucketing, and one test that fails on a fresh clone. Over the workshop you fix
+the bug, learn to manage Claude's context, teach Claude the repo, add a skill
+and a hook, and give Claude live library docs over MCP.
+
+> This is the `foundations` branch, used by the **Claude Code Foundations**
+> workshop. The `main` branch is the **Foundations to Scale** workshop.
 
 ## Setup
 
+You need **Node.js 26 LTS**, git and Claude Code.
+
 ```bash
-unzip flag-service.zip
+git clone -b foundations https://github.com/entelect/claude-workshop-feature-flags.git flag-service
 cd flag-service
-npm test            # expect: 3 passing, 1 failing — that's the starting point
+npm run preflight   # every line should be a ✓
+npm test            # expect: 1 failing — that's the starting point
 ```
 
-Zero install required for the core exercises. Tests run on plain `node --test`
-and import `lib/` directly — no bundler, no Next build. Only `npm install`
-when you hit Exercise 3 (the MCP SDK is a real dep).
+Nothing to install for the exercises: tests run on plain `node --test` and
+import `lib/` directly.
 
 ## Structure
 
 ```
-lib/flags.js              ← 12 flags. Static array. Start by reading this.
-lib/evaluate.js           ← Rollout bucketing. THE BUG LIVES HERE.
-test/evaluate.test.js     ← 4 tests. One fails. Your target for Ex 1.
-app/api/flags/route.js    ← GET all flags, ?env= filter
-app/api/flags/[key]/      ← GET one flag, ?userId= to evaluate
-app/api/rollout/route.js  ← POST to bump a flag's %
-mcp/flag-store/server.js  ← Stdio MCP server. Ex 3 wires this up.
-CLAUDE.md                 ← Sparse TODOs. Ex 2 fills these in.
+lib/flags.js               ← 12 flags. Static array. Start by reading this.
+lib/evaluate.js            ← Rollout bucketing. The first bug lives here.
+test/evaluate.test.js      ← 4 tests. One fails.
+app/api/                   ← Route handlers, with their own CLAUDE.md
+mcp/                       ← Stdio MCP servers, with their own CLAUDE.md
+docs/rollout-policy.md     ← How the team rolls out a flag
+CLAUDE.md                  ← Sparse TODOs. You fill these in.
 ```
 
 ---
 
-## Exercise 1 — Fix the failing test (15 min)
+## Module 1 — Foundations
 
-Open `claude` in this directory. One test is red. You don't know why yet.
+### E1. Fix the failing test
 
-Paste this prompt:
+Open `claude` in this directory and give it the problem, not the solution:
 
-> *"Run npm test. One test fails. Read the failing test and the code it
-> exercises — figure out why user-23 gets excluded at 100% rollout and fix
-> it. Don't touch the test file."*
+> *npm test is failing. Find the bug and fix it. Don't touch the test file.*
 
-Watch Claude run the test, read `lib/evaluate.js`, spot the arithmetic, and
-patch it. If it proposes changing the test instead of the code, push back.
+**Done when:** `npm test` passes 4/4, and Claude found `% 101` and changed it
+to `% 100`.
 
-**Done when:** `npm test` → `✔ 4 passing`. Claude found the `% 101` and
-changed it to `% 100`.
+## Module 2 — Context
 
-**Stretch:** ask *"why does this bug only show up at 100% rollout and not at,
-say, 50%?"* — the answer tells you something about how off-by-one bugs hide.
+### E2. Fill, measure, compact, clear, hand off
 
----
+1. Run `/context`. Note what's loaded before you've typed anything.
+2. Ask: *Read every file in lib/, app/ and mcp/ and explain how a rollout
+   flows through the system.* Run `/context` again.
+3. Run `/compact focus on how evaluate.js buckets users`, then `/context`.
+4. Ask: *Write a handoff note to HANDOFF.md: what we fixed in E1, why, and
+   what's left to explore.*
+5. Run `/clear`, then: *@HANDOFF.md what did we fix, and why?*
 
-## Exercise 2 — Teach Claude the repo (12 min)
+**Done when:** you saw `/context` grow and shrink, and a cleared session
+answered from `HANDOFF.md`.
 
-Two artifacts: a filled-in `CLAUDE.md`, and a skill that wraps the rollout
-workflow.
+## Module 3 — Teach Claude your repo
 
-Paste this prompt:
+### E3. A good CLAUDE.md
 
-> *"Fill in the three TODO sections in CLAUDE.md — how to run tests, what a
-> flag looks like, and what you should never do with prod flags. Then create
-> .claude/skills/rollout/SKILL.md that: (1) runs npm test, (2) if green, bumps
-> the named flag's rolloutPercent in lib/flags.js, (3) if red, refuses and
-> shows the failure."*
+Run `/init`. Claude suggests what to put in `CLAUDE.md`. Edit the result
+until it holds only what Claude can't work out by reading the code: the
+commands to run, the hard constraints, and pointers (like
+`@docs/rollout-policy.md`) instead of pasted docs.
 
-Then test it: `/rollout new-checkout 50`. The skill should run tests, see
-4/4, and edit `lib/flags.js` to bump the prod `new-checkout` flag from 25→50.
+**Done when:** in a fresh session, Claude answers *How do I run the tests?*,
+*Can I raise a prod flag above staging?* and *Where do flags live?* correctly
+without reading any files first.
 
-**Done when:** `CLAUDE.md` has three filled sections (no more TODOs),
-`.claude/skills/rollout/SKILL.md` exists, and `/rollout new-checkout 50` ran
-tests before touching the flag.
+### E4. The hierarchy
 
-**Stretch:** add a "Never" rule to `CLAUDE.md` that forbids raising a prod
-flag above its staging percentage. Then try `/rollout beta-search 80` (staging
-is at 25%) and watch Claude refuse.
+1. Run `/context all` and find **Memory files**. Is `app/api/CLAUDE.md` there?
+2. Ask Claude to read `app/api/rollout/route.js`. Watch for the `Loaded` line.
+3. From your shell (not via Claude), create `CLAUDE.local.md` with a rule that
+   contradicts one in `CLAUDE.md`. Restart Claude and ask about that rule.
+4. Predict, then run `/compact` and ask what Claude still knows about the API
+   conventions in `app/api/CLAUDE.md`.
 
----
+**Done when:** you've seen a nested file load on demand, a contradiction
+between two files, and what survives `/compact`.
 
-## Exercise 3 — Wire the MCP server (15 min)
+### E5. Memory
 
-Give Claude live read access to the flag store — not by reading files, but by
-calling tools.
+Tell Claude *remember that I prefer small commits*, then *add "run npm test
+before every commit" to CLAUDE.md*. Open `/memory` and find where each went.
 
-First `npm install` (the MCP SDK is a real dep).
+**Done when:** one landed in auto memory and one in `CLAUDE.md`.
 
-Paste this prompt:
+## Module 4 — Skills and hooks
 
-> *"Register mcp/flag-store/server.js as an MCP server called flag-store.
-> Then restart and tell me which prod flags are over 50% rollout — answer by
-> calling the MCP tools, not by reading lib/flags.js."*
+### E6. Your first skill: /rollout
 
-The registration command is
-`claude mcp add flag-store -- node mcp/flag-store/server.js`. Claude may or
-may not figure that out on its own — fine either way.
+> *Create .claude/skills/rollout/SKILL.md. When I run /rollout <flag-key>
+> <percent> it should: (1) run npm test, (2) if red, refuse and show the
+> failure, (3) if green, update that flag's staging rolloutPercent in
+> lib/flags.js, (4) show me the diff. Follow @docs/rollout-policy.md.*
 
-**Done when:** Claude answers the prod-flags question via
-`mcp__flag-store__list_flags`, not by reading `lib/flags.js`.
+Then try `/rollout new-checkout 50`.
 
-**Stretch:** *"Use check_rollout_safety to tell me if it's safe to take
-new-checkout to 75% in prod."* (It isn't — staging is at 100% so the
-staging-coverage check passes, but if you did the stretch in Ex 2 your
-CLAUDE.md rule might add its own objection.)
+**Done when:** `/rollout` ran `npm test` before touching the flag and showed
+a diff.
 
----
+### E7. A hook that blocks prod edits
 
-## Exercise 4 — Package as plugin (8 min)
+> *Create a PreToolUse hook in .claude/settings.json that blocks any Edit to
+> lib/flags.js that would change a prod flag. Write the check as a small Node
+> script in .claude/hooks/block-prod-flags.js that reads the hook JSON from
+> stdin, and if the edit targets lib/flags.js and the new text contains
+> "prod", prints "BLOCKED: direct prod flag edits are not allowed. Use the
+> rollout API." to stderr and exits 2. Otherwise exit 0.*
 
-Your skill from Ex 2 becomes one installable unit.
+Restart Claude (hooks load at startup), then ask it to bump `new-checkout` to
+100% in prod.
 
-Paste this prompt:
+**Done when:** the hook blocked the edit and prod in `lib/flags.js` is
+unchanged.
 
-> *"Create flag-toolkit/ at the repo root with a .claude-plugin/plugin.json
-> (name, description, author) and copy the rollout skill into
-> flag-toolkit/skills/rollout/SKILL.md. Then validate it."*
+## Module 5 — Scale
 
-The shape:
+### E8. Live docs with Context7
 
+```bash
+claude mcp add --transport http context7 https://mcp.context7.com/mcp
 ```
-flag-toolkit/
-├── .claude-plugin/plugin.json
-└── skills/rollout/SKILL.md   ← copy from Ex 2
-```
 
-**Done when:** `claude plugin validate flag-toolkit` passes.
+Restart Claude, check `/mcp` shows **context7** connected, then ask:
 
-**Stretch:** add a second skill to the plugin — `/flag-audit` that lists
-every flag where prod % > staging %. Ship both skills as one plugin.
+> *Is app/api/flags/[key]/route.js correct for the Next.js version in
+> package.json? use context7*
+
+If Claude finds a problem, have it fix the route and add
+`test/flag-route.test.js` that calls `GET` the way Next.js does.
+
+**Done when:** the transcript shows a `mcp__context7__*` call, the route is
+fixed, and `npm test` is green. Run `/context` to see what the MCP tools cost.
+
+### E9. Parallel subagents
+
+> *Map this repo for me: the data model, the API surface, and what's tested.
+> Use parallel Explore agents, one per question.*
+
+**Done when:** more than one subagent ran and you got one merged summary.
 
 ---
 
 ## Reset between runs
 
 ```bash
-./reset-demo.sh   # re-plants the bug, restores sparse CLAUDE.md, clears skills + plugin
+./reset-demo.sh   # re-plants both bugs, restores the CLAUDE.md files, clears skills, rules, hooks and MCP
 ```
